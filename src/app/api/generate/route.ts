@@ -1,9 +1,9 @@
 import {NextRequest, NextResponse} from "next/server";
 import {createErrorResponse, getPluginSettingsFromRequest, PluginErrorType} from "@lobehub/chat-plugin-sdk";
-import {ExaSearchParams, ExaSearchResponse, Settings} from "@/type";
+import {OneCompilerRequestBody, OneCompilerResponse, Settings} from "@/type";
 import axios from "axios";
 
-const EXA_API_URL = 'https://api.exa.ai/search';
+const ONECOMPILER_API_URL = 'https://onecompiler-apis.p.rapidapi.com/api/v1/run';
 // 从环境变量获取验证密钥
 const AUTH_KEY = process.env.PLUGIN_AUTH_KEY;
 
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 		let settings = getPluginSettingsFromRequest<Settings>(req);
 		if (!settings)
 			return createErrorResponse(PluginErrorType.PluginSettingsInvalid, {
-				message: 'Plugin settings not found.',
+				message: '插件设置未找到。',
 			});
 
 		// 验证插件API密钥
@@ -40,117 +40,90 @@ export async function POST(req: NextRequest) {
 			}, { status: 401 });
 		}
 
-		const apiKey = settings.EXA_API_KEY;
-		if (!apiKey) {
+		const rapidApiKey = settings.RAPIDAPI_KEY;
+		if (!rapidApiKey) {
 			return createErrorResponse(PluginErrorType.PluginSettingsInvalid, {
-				message: 'EXA API key not found in settings.',
+				message: 'RapidAPI Key未在设置中提供。',
 			});
 		}
 
 		const body = await req.json();
-		const { query } = body;
+		const { code, language = settings.CODE_LANGUAGE || 'python', stdin = '' } = body;
 		
-		if (!query) {
+		if (!code) {
 			return createErrorResponse(PluginErrorType.PluginSettingsInvalid, {
-				message: 'Search query is required.',
+				message: '代码内容是必需的。',
 			  });
 		}
 
-		// 构建搜索参数，从客户端设置中获取参数
-		const searchParams: ExaSearchParams = {
-			query,
-			type: settings.EXA_SEARCH_TYPE || 'keyword', // 使用设置或默认值
-			numResults: settings.EXA_SEARCH_NUM_RESULTS ? parseInt(settings.EXA_SEARCH_NUM_RESULTS) : 25, // 将字符串转换为数字
-			contents: {
-				summary: settings.EXA_SEARCH_SUMMARY !== undefined ? settings.EXA_SEARCH_SUMMARY : true,
-				text: settings.EXA_SEARCH_TEXT || false
-			}
+		// 构建OneCompiler请求
+		const oneCompilerRequest: OneCompilerRequestBody = {
+			language,
+			stdin,
+			files: [
+				{
+					name: `index.${language === 'javascript' ? 'js' : language}`,
+					content: code
+				}
+			]
 		};
 
-		// 调用Exa搜索API
+		// 调用OneCompiler API
 		const response = await axios.post(
-			EXA_API_URL,
-			searchParams,
+			ONECOMPILER_API_URL,
+			oneCompilerRequest,
 			{
 				headers: {
-					'x-api-key': apiKey,
+					'X-RapidAPI-Host': 'onecompiler-apis.p.rapidapi.com',
+					'X-RapidAPI-Key': rapidApiKey,
 					'Content-Type': 'application/json',
 				}
 			}
 		);
 
 		if (response.status !== 200) {
-			if (response.status === 401) {
+			if (response.status === 401 || response.status === 403) {
 				return createErrorResponse(PluginErrorType.PluginSettingsInvalid, {
-					message: 'Invalid API key.'
+					message: '无效的RapidAPI密钥。'
 				});
 			}
-			console.error('Failed to search:', response.data);
+			console.error('代码执行失败:', response.data);
 			return NextResponse.json({
-				error: 'Failed to perform search.'
+				error: '代码执行失败。'
 			}, { status: 500 });
 		}
 
-		const searchResults: ExaSearchResponse = response.data;
+		const result: OneCompilerResponse = response.data;
 		
 		// 构建Markdown格式的响应
-		let markdownResponse = `## 搜索结果: "${query}"\n\n`;
+		let markdownResponse = `## 代码执行结果\n\n`;
 		
-		if (searchResults.results && searchResults.results.length > 0) {
-			searchResults.results.forEach((result, index) => {
-				markdownResponse += `### ${index + 1}. [${result.title}](${result.url})\n`;
-				
-				if (result.publishedDate) {
-					markdownResponse += `📅 发布日期: ${result.publishedDate}\n`;
-				}
-				
-				if (result.author) {
-					markdownResponse += `✍️ 作者: ${result.author}\n`;
-				}
-				
-				// 添加相关性分数展示
-				if (result.score) {
-					markdownResponse += `📊 相关度: ${(result.score * 100).toFixed(2)}%\n`;
-				}
-				
-				// 根据设置显示全文或摘要
-				
-				if (result.summary) {
-					markdownResponse += `\n**摘要**:\n\n${result.summary}\n\n`;
-				}
-				
-				if (result.text) {
-					markdownResponse += `\n**全文内容**:\n\n${result.text}\n\n`;
-				} 
-
-				// 添加高亮内容(如果有)
-				if (result.highlights && result.highlights.length > 0) {
-					markdownResponse += `\n**关键片段**:\n\n`;
-					result.highlights.forEach(highlight => {
-						markdownResponse += `> ${highlight}\n`;
-					});
-					markdownResponse += `\n`;
-				}
-
-
-				
-				markdownResponse += `---\n\n`;
-			});
-
-			// 添加搜索元数据(如果有)
-			if (searchResults.resolvedSearchType) {
-				markdownResponse += `搜索类型: ${searchResults.resolvedSearchType}\n`;
-			}
-		} else {
-			markdownResponse += "没有找到相关结果。";
+		markdownResponse += `**语言**: ${language}\n`;
+		markdownResponse += `**状态**: ${result.status}\n`;
+		markdownResponse += `**执行时间**: ${result.executionTime}ms\n\n`;
+		
+		if (stdin) {
+			markdownResponse += `### 输入\n\`\`\`\n${stdin}\n\`\`\`\n\n`;
+		}
+		
+		if (result.stdout) {
+			markdownResponse += `### 标准输出\n\`\`\`\n${result.stdout}\n\`\`\`\n\n`;
+		}
+		
+		if (result.stderr) {
+			markdownResponse += `### 标准错误\n\`\`\`\n${result.stderr}\n\`\`\`\n\n`;
+		}
+		
+		if (result.exception) {
+			markdownResponse += `### 异常\n\`\`\`\n${result.exception}\n\`\`\`\n\n`;
 		}
 
-		// 返回搜索结果
+		// 返回执行结果
 		return NextResponse.json({ markdownResponse });
 	} catch (error) {
-		console.error('Error performing search:', error);
+		console.error('代码执行错误:', error);
 		return NextResponse.json({
-			error: 'Failed to perform search.'
+			error: '代码执行失败。'
 		}, { status: 500 });
 	}
 }

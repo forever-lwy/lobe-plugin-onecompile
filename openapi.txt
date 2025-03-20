@@ -1,0 +1,102 @@
+openapi: 3.0.0
+info:
+  title: OneCompiler API
+  description: 这是一个用于运行代码的 API，提供了通过请求执行代码的功能。
+  version: 1.0.0
+servers:
+  - url: https://onecompiler-apis.p.rapidapi.com/api/v1
+    description: OneCompiler API 服务器
+paths:
+  /run:
+    post:
+      summary: 执行代码
+      description: 使用指定的 Python 代码进行计算，并返回执行结果。
+      operationId: runCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language:
+                  type: string
+                  example: python
+                  description: 编程语言可用python、java、javascript
+                stdin:
+                  type: string
+                  example: Peter
+                  description: 输入给程序的标准输入数据
+                files:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: index.py
+                        description: 文件的名称
+                      content:
+                        type: string
+                        example: |
+                          import sys
+                          name = sys.stdin.readline()
+                          print('Hello ' + name)
+                        description: 文件的内容，Python 代码
+      responses:
+        '200':
+          description: 成功执行并返回执行结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                    description: 执行状态
+                  exception:
+                    type: string
+                    nullable: true
+                    description: 如果有异常，返回异常信息
+                  stdout:
+                    type: string
+                    example: |
+                      blinker==1.7.0
+                      certifi==2024.8.30
+                      charset-normalizer==3.4.0
+                      cryptography==41.0.7
+                      dbus-python==1.3.2
+                      ...
+                    description: 执行标准输出
+                  stderr:
+                    type: string
+                    nullable: true
+                    example: |
+                      /index.py:1: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+                      import pkg_resources
+                    description: 执行标准错误输出
+                  executionTime:
+                    type: integer
+                    example: 282
+                    description: 执行时间（毫秒）
+                  stdin:
+                    type: string
+                    example: Peter
+                    description: 提供的标准输入数据
+        '400':
+          description: 请求无效
+        '500':
+          description: 服务器错误
+components:
+  headers:
+    X-RapidAPI-Host:
+      description: RapidAPI 主机
+      schema:
+        type: string
+        example: onecompiler-apis.p.rapidapi.com
+    X-RapidAPI-Key:
+      description: RapidAPI 密钥
+      schema:
+        type: string
+        example: xxxxxx

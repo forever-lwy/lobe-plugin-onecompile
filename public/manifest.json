@@ -1,36 +1,46 @@
 {
-  "identifier": "simple-exa-search",
+  "identifier": "onecompiler-code-runner",
   "api": [
     {
       "url": "https://alps-tongyi-image-kappa.vercel.app/api/generate",
-      "name": "searchWeb",
-      "description": "Search the web and extract content from results using the Exa Search API",
+      "name": "runCode",
+      "description": "使用OneCompiler API执行多种编程语言的代码",
       "parameters": {
         "type": "object",
         "properties": {
-          "query": {
+          "code": {
             "type": "string",
-            "description": "The search query string"
+            "description": "要执行的源代码"
+          },
+          "language": {
+            "type": "string",
+            "description": "编程语言(python、javascript、java等)",
+            "default": "python"
+          },
+          "stdin": {
+            "type": "string",
+            "description": "程序的标准输入",
+            "default": ""
           }
         },
-        "required": ["query"]
+        "required": ["code"]
       }
     }
   ],
   "meta": {
-    "avatar": "🔍",
-    "description": "This plugin uses Exa Search API to search the web intelligently and extract content from results.",
-    "tags": ["search", "web", "content", "exa"],
-    "title": "Exa Web Search"
+    "avatar": "💻",
+    "description": "这个插件使用OneCompiler API运行多种编程语言的代码。",
+    "tags": ["code", "compiler", "execution", "programming"],
+    "title": "OneCompiler代码执行器"
   },
   "settings": {
     "type": "object",
-    "required": ["EXA_API_KEY", "PLUGIN_API_KEY"],
+    "required": ["RAPIDAPI_KEY", "PLUGIN_API_KEY"],
     "properties": {
-      "EXA_API_KEY": {
+      "RAPIDAPI_KEY": {
         "type": "string",
-        "title": "Exa API Key",
-        "description": "The API key to use the Exa Search API",
+        "title": "RapidAPI Key",
+        "description": "访问OneCompiler API的RapidAPI密钥",
         "format": "password"
       },
       "PLUGIN_API_KEY": {
@@ -40,34 +50,15 @@
         "default": "",
         "format": "password"
       },
-      "EXA_SEARCH_TYPE": {
+      "CODE_LANGUAGE": {
         "type": "string",
-        "title": "搜索类型",
-        "description": "选择搜索类型: keyword(关键词搜索)、neural(神经搜索)或auto(自动选择)",
-        "enum": ["keyword", "neural", "auto"],
-        "default": "keyword"
-      },
-      "EXA_SEARCH_NUM_RESULTS": {
-        "type": "string",
-        "title": "结果数量",
-        "description": "返回的搜索结果数量（1-100）",
-        "default": "25",
-        "enum": ["5", "10","15", "20", "25", "50", "75", "100"]
-      },
-      "EXA_SEARCH_SUMMARY": {
-        "type": "boolean",
-        "title": "返回网页摘要",
-        "description": "是否返回网页摘要",
-        "default": true
-      },
-      "EXA_SEARCH_TEXT": {
-        "type": "boolean",
-        "title": "返回网页全文",
-        "description": "是否返回网页全文（可能增加响应大小）",
-        "default": false
+        "title": "默认编程语言",
+        "description": "设置默认的编程语言",
+        "enum": ["python", "javascript", "java"],
+        "default": "python"
       }
     }
   },
   "version": "1",
-  "systemRole": "This plugin uses Exa Search API to search the web intelligently and extract content from results. When incorporating search results in your responses, always add references at the end using Markdown citation format. For example:\n\nAccording to recent studies, global temperatures have increased by 1.1°C since pre-industrial times[^1].\n\n[^1]: [Climate Change Report 2023](https://example.com/climate-report)\n\nFollow this format with numbered references as footnotes at the end of your response, where only the website title is visible as a clickable link."
+  "systemRole": "这个插件使用OneCompiler API执行多种编程语言的代码。您可以编写和执行代码来解决问题、演示概念或执行计算。当需要执行代码时，提供代码和语言类型，插件将返回执行结果。"
 }
