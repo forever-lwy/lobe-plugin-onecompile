@@ -2,7 +2,7 @@
   "identifier": "onecompiler-code-runner",
   "api": [
     {
-      "url": "https://alps-tongyi-image-kappa.vercel.app/api/generate",
+      "url": "https://lobe-plugin-onecompile.vercel.app/api/generate",
       "name": "runCode",
       "description": "使用OneCompiler API执行多种编程语言的代码",
       "parameters": {
