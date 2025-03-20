@@ -15,6 +15,7 @@
           "language": {
             "type": "string",
             "description": "编程语言(python、javascript、java等)",
+            "enum": ["python", "javascript", "java"],
             "default": "python"
           },
           "stdin": {
@@ -60,5 +61,5 @@
     }
   },
   "version": "1",
-  "systemRole": "这个插件使用OneCompiler API执行多种编程语言的代码。您可以编写和执行代码来解决问题、演示概念或执行计算。当需要执行代码时，提供代码和语言类型，插件将返回执行结果。"
+  "systemRole": "onecompiler-code-runner使用OneCompiler API执行多种编程语言的代码。您可以编写和执行代码来解决问题、演示概念或执行计算。当需要执行代码时，提供代码和语言类型，插件将返回执行结果。注意：代码的执行结果必须输出到标准输出中才能返回。"
 }
